@@ -95,8 +95,92 @@ const getProductById = async (req, res) => {
     });
   }
 };
+const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      name,
+      slug,
+      description,
+      price,
+      stock,
+      image,
+      categoryId,
+    } = req.body;
+
+    const product = await prisma.product.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(slug !== undefined && { slug }),
+        ...(description !== undefined && { description }),
+        ...(price !== undefined && { price }),
+        ...(stock !== undefined && { stock }),
+        ...(image !== undefined && { image }),
+        ...(categoryId !== undefined && { categoryId }),
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      product,
+    });
+  } catch (error) {
+    console.error(error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update product",
+    });
+  }
+};
+const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.product.delete({
+      where: {
+        id: Number(id),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete product",
+    });
+  }
+};
 module.exports = {
   createProduct,
   getProducts,
   getProductById,
+  updateProduct,
+  deleteProduct,
 };

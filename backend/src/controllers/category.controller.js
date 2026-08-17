@@ -17,7 +17,14 @@ const createCategory = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
+  
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A category with this slug already exists",
+      });
+    }
+  
     res.status(500).json({
       success: false,
       message: "Failed to create category",

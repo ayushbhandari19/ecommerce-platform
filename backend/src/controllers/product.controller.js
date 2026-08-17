@@ -31,9 +31,24 @@ const createProduct = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    res.status(500).json({
+  if (error.code === "P2002") {
+    return res.status(409).json({
       success: false,
-      message: "Failed to create product",
+      message: "A product with this slug already exists",
+    });
+  }
+
+  if (error.code === "P2003") {
+    return res.status(400).json({
+      success: false,
+      message: "The specified category does not exist",
+    });
+  }
+
+  res.status(500).json({
+    success: false,
+    message: "Failed to create product",
+  
     });
   }
 };

@@ -19,6 +19,12 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -28,99 +34,113 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders    Order[]
-  cart      Cart?
-  wishlist  WishlistItem[]
-  reviews   Review[]
+  orders   Order[]
+  cart     Cart?
+  wishlist WishlistItem[]
+  reviews  Review[]
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
-  slug      String    @unique
-  createdAt DateTime  @default(now())
+  slug      String   @unique
+  createdAt DateTime @default(now())
 
-  products  Product[]
+  products Product[]
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  slug        String    @unique
+  slug        String   @unique
   description String
-  price       Decimal   @db.Decimal(10, 2)
-  stock       Int       @default(0)
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
   image       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  categoryId  Int
-  category    Category  @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
 
-  orderItems  OrderItem[]
-  cartItems   CartItem[]
-  wishlist    WishlistItem[]
-  reviews     Review[]
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  wishlist   WishlistItem[]
+  reviews    Review[]
 }
 
 model Cart {
-  id        Int        @id @default(autoincrement())
-  userId    Int        @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id])
-  items     CartItem[]
+  user  User       @relation(fields: [userId], references: [id])
+  items CartItem[]
 }
 
 model CartItem {
-  id        Int      @id @default(autoincrement())
-  quantity  Int      @default(1)
+  id       Int @id @default(autoincrement())
+  quantity Int @default(1)
 
   cartId    Int
   productId Int
 
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@unique([cartId, productId])
 }
 
 model WishlistItem {
-  id        Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   userId    Int
   productId Int
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
 }
 
 model Order {
-  id          Int          @id @default(autoincrement())
-  totalAmount Decimal      @db.Decimal(10, 2)
-  status      OrderStatus  @default(PENDING)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id          Int         @id @default(autoincrement())
+  totalAmount Decimal     @db.Decimal(10, 2)
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  userId      Int
-  user        User         @relation(fields: [userId], references: [id])
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 
-  items       OrderItem[]
+  items   OrderItem[]
+  payment Payment?
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  quantity  Int
-  price     Decimal  @db.Decimal(10, 2)
+  id       Int     @id @default(autoincrement())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
 
   orderId   Int
   productId Int
 
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  amount        Decimal       @db.Decimal(10, 2)
+  status        PaymentStatus @default(PENDING)
+  paymentMethod String?
+  transactionId String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model Review {
@@ -132,8 +152,8 @@ model Review {
   userId    Int
   productId Int
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
 }

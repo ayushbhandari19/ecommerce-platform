@@ -1,10 +1,16 @@
 const express = require("express");
+const validate = require("../middleware/validate");
+const {
+  createCategorySchema,
+  updateCategorySchema,
+} = require("../validators/category.validator");
+
 const {
   createCategory,
   getCategories,
+  updateCategory,
+  deleteCategory,
 } = require("../controllers/category.controller");
-const validate = require("../middleware/validate");
-const { createCategorySchema } = require("../validators/category.validator");
 const authenticate = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const router = express.Router();
@@ -15,7 +21,20 @@ router.post(
   validate(createCategorySchema),
   createCategory
 );
+router.put(
+  "/:id",
+  authenticate,
+  authorize("ADMIN"),
+  validate(updateCategorySchema),
+  updateCategory
+);
 
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("ADMIN"),
+  deleteCategory
+);
 router.get("/", getCategories);
 
 module.exports = router;

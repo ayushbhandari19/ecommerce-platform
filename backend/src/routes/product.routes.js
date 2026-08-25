@@ -12,8 +12,10 @@ const validate = require("../middleware/validate");
 const authenticate = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 
-const { createProductSchema } = require("../validators/product.validator");
-
+const {
+  createProductSchema,
+  updateProductSchema,
+} = require("../validators/product.validator");
 const router = express.Router();
 
 router.post(
@@ -29,6 +31,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("ADMIN"),
+  validate(updateProductSchema),
   updateProduct
 );
 

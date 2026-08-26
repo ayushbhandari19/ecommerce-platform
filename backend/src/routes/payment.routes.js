@@ -20,25 +20,19 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post(
-    "/",
-    validate(createPaymentSchema),
-    createPayment
-  );
-  
-  router.get(
-    "/",
-    getMyPayments
-  );
-  
-  router.get(
-    "/:id",
-    getPaymentById
-  );
-  
-  router.post(
-    "/:id/confirm",
-    validate(confirmPaymentSchema),
-    confirmPayment
-  );
+  "/",
+  validate(createPaymentSchema),
+  createPayment
+);
+
+router.get("/", getMyPayments);
+
+router.get("/:id", getPaymentById);
+
+router.post(
+  "/:id/confirm",
+  validate(confirmPaymentSchema),
+  confirmPayment
+);
 
 module.exports = router;

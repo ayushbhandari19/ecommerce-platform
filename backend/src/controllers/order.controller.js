@@ -202,29 +202,89 @@ const getOrders = async (req, res) => {
   };
   const getAllOrders = async (req, res) => {
     try {
-      const orders = await prisma.order.findMany({
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      const page = Math.max(Number(req.query.page) || 1, 1);
+      const limit = Math.min(
+        Math.max(Number(req.query.limit) || 10, 1),
+        100
+      );
+
+      const { status } = req.query;
+
+      const validStatuses = [
+        "PENDING",
+        "CONFIRMED",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+      ];
+
+      if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid order status",
+        });
+      }
+
+      let userId;
+
+      if (req.query.userId !== undefined) {
+        userId = Number(req.query.userId);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid user ID",
+          });
+        }
+      }
+
+      const where = {
+        ...(status && { status }),
+        ...(userId !== undefined && { userId }),
+      };
+
+      const [orders, totalOrders] = await prisma.$transaction([
+        prisma.order.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            items: {
+              include: {
+                product: true,
+              },
             },
           },
-          items: {
-            include: {
-              product: true,
-            },
+          orderBy: {
+            createdAt: "desc",
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+
+        prisma.order.count({
+          where,
+        }),
+      ]);
+
+      const totalPages = Math.ceil(totalOrders / limit);
 
       res.status(200).json({
         success: true,
         count: orders.length,
+        pagination: {
+          page,
+          limit,
+          totalOrders,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
         orders,
       });
     } catch (error) {

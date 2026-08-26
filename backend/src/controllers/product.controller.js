@@ -54,19 +54,42 @@ const createProduct = async (req, res) => {
 };
 const getProducts = async (req, res) => {
   try {
-    const products = await prisma.product.findMany({
-      include: {
-        category: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 10, 1),
+      100
+    );
+
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        skip,
+        take: limit,
+        include: {
+          category: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.product.count(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
       count: products.length,
       products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
     });
   } catch (error) {
     console.error(error);

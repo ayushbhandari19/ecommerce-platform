@@ -130,7 +130,7 @@ const createOrder = async (req, res) => {
 const getOrders = async (req, res) => {
     try {
       const userId = req.user.userId;
-  
+
       const orders = await prisma.order.findMany({
         where: {
           userId,
@@ -146,7 +146,7 @@ const getOrders = async (req, res) => {
           createdAt: "desc",
         },
       });
-  
+
       res.status(200).json({
         success: true,
         count: orders.length,
@@ -154,7 +154,7 @@ const getOrders = async (req, res) => {
       });
     } catch (error) {
       console.error(error);
-  
+
       res.status(500).json({
         success: false,
         message: "Failed to fetch orders",
@@ -165,7 +165,7 @@ const getOrders = async (req, res) => {
     try {
       const userId = req.user.userId;
       const orderId = Number(req.params.id);
-  
+
       const order = await prisma.order.findFirst({
         where: {
           id: orderId,
@@ -179,21 +179,21 @@ const getOrders = async (req, res) => {
           },
         },
       });
-  
+
       if (!order) {
         return res.status(404).json({
           success: false,
           message: "Order not found",
         });
       }
-  
+
       res.status(200).json({
         success: true,
         order,
       });
     } catch (error) {
       console.error(error);
-  
+
       res.status(500).json({
         success: false,
         message: "Failed to fetch order",
@@ -221,7 +221,7 @@ const getOrders = async (req, res) => {
           createdAt: "desc",
         },
       });
-  
+
       res.status(200).json({
         success: true,
         count: orders.length,
@@ -229,7 +229,7 @@ const getOrders = async (req, res) => {
       });
     } catch (error) {
       console.error(error);
-  
+
       res.status(500).json({
         success: false,
         message: "Failed to fetch all orders",
@@ -240,53 +240,87 @@ const getOrders = async (req, res) => {
     try {
       const orderId = Number(req.params.id);
       const { status } = req.body;
-  
-      const order = await prisma.order.findUnique({
-        where: {
-          id: orderId,
-        },
+
+      const result = await prisma.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+          where: {
+            id: orderId,
+          },
+          include: {
+            items: true,
+          },
+        });
+
+        if (!order) {
+          throw new Error("ORDER_NOT_FOUND");
+        }
+
+        const allowedStatuses = allowedTransitions[order.status];
+
+        if (!allowedStatuses.includes(status)) {
+          throw new Error(
+            `INVALID_TRANSITION:${order.status}:${status}`
+          );
+        }
+
+        // Restore stock when an order is cancelled.
+        if (status === "CANCELLED") {
+          for (const item of order.items) {
+            await tx.product.update({
+              where: {
+                id: item.productId,
+              },
+              data: {
+                stock: {
+                  increment: item.quantity,
+                },
+              },
+            });
+          }
+        }
+
+        return tx.order.update({
+          where: {
+            id: orderId,
+          },
+          data: {
+            status,
+          },
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
       });
-      
-      if (!order) {
+
+      res.status(200).json({
+        success: true,
+        message: "Order status updated successfully",
+        order: result,
+      });
+    } catch (error) {
+      console.error(error);
+
+      if (error.message === "ORDER_NOT_FOUND") {
         return res.status(404).json({
           success: false,
           message: "Order not found",
         });
       }
-      
-      const allowedStatuses = allowedTransitions[order.status];
-      
-      if (!allowedStatuses.includes(status)) {
+
+      if (error.message.startsWith("INVALID_TRANSITION:")) {
+        const [, currentStatus, newStatus] =
+          error.message.split(":");
+
         return res.status(400).json({
           success: false,
-          message: `Cannot change order status from ${order.status} to ${status}`,
+          message: `Cannot change order status from ${currentStatus} to ${newStatus}`,
         });
       }
-  
-      const updatedOrder = await prisma.order.update({
-        where: {
-          id: orderId,
-        },
-        data: {
-          status,
-        },
-        include: {
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
-      });
-  
-      res.status(200).json({
-        success: true,
-        message: "Order status updated successfully",
-        order: updatedOrder,
-      });
-    } catch (error) {
-      console.error(error);
-  
+
       res.status(500).json({
         success: false,
         message: "Failed to update order status",

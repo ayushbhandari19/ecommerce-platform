@@ -9,7 +9,7 @@ const orderRoutes = require("./routes/order.routes");
 const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const app = express();
-
+const wishlistRoutes = require("./routes/wishlist.routes");
 app.use(cors());
 app.use(express.json());
 
@@ -19,6 +19,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 app.use("/api", reviewRoutes);
 
 app.get("/api/health", (req, res) => {

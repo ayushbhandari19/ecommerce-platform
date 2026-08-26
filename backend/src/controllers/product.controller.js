@@ -60,10 +60,38 @@ const getProducts = async (req, res) => {
       100
     );
 
+    const search = req.query.search?.trim();
+
     const skip = (page - 1) * limit;
+
+    const where = search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              description: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              slug: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+          ],
+        }
+      : {};
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
+        where,
         skip,
         take: limit,
         include: {
@@ -73,7 +101,9 @@ const getProducts = async (req, res) => {
           createdAt: "desc",
         },
       }),
-      prisma.product.count(),
+      prisma.product.count({
+        where,
+      }),
     ]);
 
     const totalPages = Math.ceil(total / limit);

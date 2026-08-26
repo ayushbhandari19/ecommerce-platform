@@ -31,24 +31,24 @@ const createProduct = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-  if (error.code === "P2002") {
-    return res.status(409).json({
-      success: false,
-      message: "A product with this slug already exists",
-    });
-  }
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A product with this slug already exists",
+      });
+    }
 
-  if (error.code === "P2003") {
-    return res.status(400).json({
-      success: false,
-      message: "The specified category does not exist",
-    });
-  }
+    if (error.code === "P2003") {
+      return res.status(400).json({
+        success: false,
+        message: "The specified category does not exist",
+      });
+    }
 
-  res.status(500).json({
-    success: false,
-    message: "Failed to create product",
-  
+    res.status(500).json({
+      success: false,
+      message: "Failed to create product",
+
     });
   }
 };
@@ -63,31 +63,66 @@ const getProducts = async (req, res) => {
     const search = req.query.search?.trim();
 
     const skip = (page - 1) * limit;
+    const category = req.query.category?.trim();
+    const sort = req.query.sort?.trim() || "newest";
 
-    const where = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive",
-              },
+    const sortOptions = {
+      price_asc: {
+        price: "asc",
+      },
+      price_desc: {
+        price: "desc",
+      },
+      newest: {
+        createdAt: "desc",
+      },
+      oldest: {
+        createdAt: "asc",
+      },
+    };
+
+    const orderBy = sortOptions[sort];
+
+    if (!orderBy) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sort option",
+        allowedSorts: Object.keys(sortOptions),
+      });
+    }
+
+    const where = {
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive",
             },
-            {
-              description: {
-                contains: search,
-                mode: "insensitive",
-              },
+          },
+          {
+            description: {
+              contains: search,
+              mode: "insensitive",
             },
-            {
-              slug: {
-                contains: search,
-                mode: "insensitive",
-              },
+          },
+          {
+            slug: {
+              contains: search,
+              mode: "insensitive",
             },
-          ],
-        }
-      : {};
+          },
+        ],
+      }),
+      ...(category && {
+        category: {
+          slug: {
+            equals: category,
+            mode: "insensitive",
+          },
+        },
+      }),
+    };
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
@@ -97,9 +132,7 @@ const getProducts = async (req, res) => {
         include: {
           category: true,
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy,
       }),
       prisma.product.count({
         where,
@@ -201,6 +234,20 @@ const updateProduct = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A product with this slug already exists",
+      });
+    }
+
+    if (error.code === "P2003") {
+      return res.status(400).json({
+        success: false,
+        message: "The specified category does not exist",
+      });
+    }
 
     if (error.code === "P2025") {
       return res.status(404).json({

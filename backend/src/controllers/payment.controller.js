@@ -98,6 +98,12 @@ const confirmPayment = async (req, res) => {
         message: "Cannot confirm a failed payment",
       });
     }
+    if (payment.order.status !== "PENDING") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment can only be confirmed for pending orders",
+      });
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const updatedPayment = await tx.payment.update({

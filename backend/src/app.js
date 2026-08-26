@@ -10,9 +10,12 @@ const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const app = express();
 const wishlistRoutes = require("./routes/wishlist.routes");
-app.use(cors());
-app.use(express.json());
-
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+  })
+);
+app.use(express.json({ limit: "100kb" }));
 app.use("/api/categories", categoryRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);

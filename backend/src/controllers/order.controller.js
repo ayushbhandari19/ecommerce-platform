@@ -1,11 +1,12 @@
 const prisma = require("../lib/prisma");
 const allowedTransitions = {
-    PENDING: ["CONFIRMED", "CANCELLED"],
-    CONFIRMED: ["SHIPPED", "CANCELLED"],
-    SHIPPED: ["DELIVERED"],
-    DELIVERED: [],
-    CANCELLED: [],
-  };
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED"],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+const { Prisma } = require("@prisma/client");
 const createOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -30,7 +31,8 @@ const createOrder = async (req, res) => {
       }
 
       // 2. Validate stock and calculate total
-      let totalAmount = 0;
+      // 2. Validate stock and calculate total
+      let totalAmount = new Prisma.Decimal(0);
 
       for (const item of cart.items) {
         if (item.quantity > item.product.stock) {
@@ -39,7 +41,9 @@ const createOrder = async (req, res) => {
           );
         }
 
-        totalAmount += Number(item.product.price) * item.quantity;
+        totalAmount = totalAmount.plus(
+          item.product.price.mul(item.quantity)
+        );
       }
 
       // 3. Create the order
@@ -62,9 +66,12 @@ const createOrder = async (req, res) => {
           },
         });
 
-        await tx.product.update({
+        const stockUpdate = await tx.product.updateMany({
           where: {
             id: item.productId,
+            stock: {
+              gte: item.quantity,
+            },
           },
           data: {
             stock: {
@@ -72,6 +79,21 @@ const createOrder = async (req, res) => {
             },
           },
         });
+        
+        if (stockUpdate.count !== 1) {
+          const currentProduct = await tx.product.findUnique({
+            where: {
+              id: item.productId,
+            },
+            select: {
+              stock: true,
+            },
+          });
+        
+          throw new Error(
+            `INSUFFICIENT_STOCK:${item.productId}:${currentProduct?.stock ?? 0}`
+          );
+        }
       }
 
       // 5. Clear the cart
@@ -128,14 +150,139 @@ const createOrder = async (req, res) => {
   }
 };
 const getOrders = async (req, res) => {
-    try {
-      const userId = req.user.userId;
+  try {
+    const userId = req.user.userId;
 
-      const orders = await prisma.order.findMany({
-        where: {
-          userId,
+    const orders = await prisma.order.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
         },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+    });
+  }
+};
+const getOrderById = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const orderId = Number(req.params.id);
+
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID",
+      });
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch order",
+    });
+  }
+};
+const getAllOrders = async (req, res) => {
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 10, 1),
+      100
+    );
+
+    const { status } = req.query;
+
+    const validStatuses = [
+      "PENDING",
+      "CONFIRMED",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+    ];
+
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status",
+      });
+    }
+
+    let userId;
+
+    if (req.query.userId !== undefined) {
+      userId = Number(req.query.userId);
+
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid user ID",
+        });
+      }
+    }
+
+    const where = {
+      ...(status && { status }),
+      ...(userId !== undefined && { userId }),
+    };
+
+    const [orders, totalOrders] = await prisma.$transaction([
+      prisma.order.findMany({
+        where,
         include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           items: {
             include: {
               product: true,
@@ -145,31 +292,95 @@ const getOrders = async (req, res) => {
         orderBy: {
           createdAt: "desc",
         },
-      });
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
 
-      res.status(200).json({
-        success: true,
-        count: orders.length,
-        orders,
-      });
-    } catch (error) {
-      console.error(error);
+      prisma.order.count({
+        where,
+      }),
+    ]);
 
-      res.status(500).json({
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      pagination: {
+        page,
+        limit,
+        totalOrders,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+      orders,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch all orders",
+    });
+  }
+};
+const updateOrderStatus = async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    const { status } = req.body;
+
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({
         success: false,
-        message: "Failed to fetch orders",
+        message: "Invalid order ID",
       });
     }
-  };
-  const getOrderById = async (req, res) => {
-    try {
-      const userId = req.user.userId;
-      const orderId = Number(req.params.id);
 
-      const order = await prisma.order.findFirst({
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
         where: {
           id: orderId,
-          userId,
+        },
+        include: {
+          items: true,
+        },
+      });
+
+      if (!order) {
+        throw new Error("ORDER_NOT_FOUND");
+      }
+
+      const allowedStatuses = allowedTransitions[order.status];
+
+      if (!allowedStatuses.includes(status)) {
+        throw new Error(
+          `INVALID_TRANSITION:${order.status}:${status}`
+        );
+      }
+
+      // Restore stock when an order is cancelled.
+      if (status === "CANCELLED") {
+        for (const item of order.items) {
+          await tx.product.update({
+            where: {
+              id: item.productId,
+            },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+      }
+
+      return tx.order.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          status,
         },
         include: {
           items: {
@@ -179,218 +390,43 @@ const getOrders = async (req, res) => {
           },
         },
       });
+    });
 
-      if (!order) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-        });
-      }
+    res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      order: result,
+    });
+  } catch (error) {
+    console.error(error);
 
-      res.status(200).json({
-        success: true,
-        order,
-      });
-    } catch (error) {
-      console.error(error);
-
-      res.status(500).json({
+    if (error.message === "ORDER_NOT_FOUND") {
+      return res.status(404).json({
         success: false,
-        message: "Failed to fetch order",
+        message: "Order not found",
       });
     }
-  };
-  const getAllOrders = async (req, res) => {
-    try {
-      const page = Math.max(Number(req.query.page) || 1, 1);
-      const limit = Math.min(
-        Math.max(Number(req.query.limit) || 10, 1),
-        100
-      );
 
-      const { status } = req.query;
+    if (error.message.startsWith("INVALID_TRANSITION:")) {
+      const [, currentStatus, newStatus] =
+        error.message.split(":");
 
-      const validStatuses = [
-        "PENDING",
-        "CONFIRMED",
-        "SHIPPED",
-        "DELIVERED",
-        "CANCELLED",
-      ];
-
-      if (status && !validStatuses.includes(status)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid order status",
-        });
-      }
-
-      let userId;
-
-      if (req.query.userId !== undefined) {
-        userId = Number(req.query.userId);
-
-        if (!Number.isInteger(userId) || userId <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid user ID",
-          });
-        }
-      }
-
-      const where = {
-        ...(status && { status }),
-        ...(userId !== undefined && { userId }),
-      };
-
-      const [orders, totalOrders] = await prisma.$transaction([
-        prisma.order.findMany({
-          where,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            items: {
-              include: {
-                product: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          skip: (page - 1) * limit,
-          take: limit,
-        }),
-
-        prisma.order.count({
-          where,
-        }),
-      ]);
-
-      const totalPages = Math.ceil(totalOrders / limit);
-
-      res.status(200).json({
-        success: true,
-        count: orders.length,
-        pagination: {
-          page,
-          limit,
-          totalOrders,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPreviousPage: page > 1,
-        },
-        orders,
-      });
-    } catch (error) {
-      console.error(error);
-
-      res.status(500).json({
+      return res.status(400).json({
         success: false,
-        message: "Failed to fetch all orders",
+        message: `Cannot change order status from ${currentStatus} to ${newStatus}`,
       });
     }
-  };
-  const updateOrderStatus = async (req, res) => {
-    try {
-      const orderId = Number(req.params.id);
-      const { status } = req.body;
 
-      const result = await prisma.$transaction(async (tx) => {
-        const order = await tx.order.findUnique({
-          where: {
-            id: orderId,
-          },
-          include: {
-            items: true,
-          },
-        });
-
-        if (!order) {
-          throw new Error("ORDER_NOT_FOUND");
-        }
-
-        const allowedStatuses = allowedTransitions[order.status];
-
-        if (!allowedStatuses.includes(status)) {
-          throw new Error(
-            `INVALID_TRANSITION:${order.status}:${status}`
-          );
-        }
-
-        // Restore stock when an order is cancelled.
-        if (status === "CANCELLED") {
-          for (const item of order.items) {
-            await tx.product.update({
-              where: {
-                id: item.productId,
-              },
-              data: {
-                stock: {
-                  increment: item.quantity,
-                },
-              },
-            });
-          }
-        }
-
-        return tx.order.update({
-          where: {
-            id: orderId,
-          },
-          data: {
-            status,
-          },
-          include: {
-            items: {
-              include: {
-                product: true,
-              },
-            },
-          },
-        });
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "Order status updated successfully",
-        order: result,
-      });
-    } catch (error) {
-      console.error(error);
-
-      if (error.message === "ORDER_NOT_FOUND") {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-        });
-      }
-
-      if (error.message.startsWith("INVALID_TRANSITION:")) {
-        const [, currentStatus, newStatus] =
-          error.message.split(":");
-
-        return res.status(400).json({
-          success: false,
-          message: `Cannot change order status from ${currentStatus} to ${newStatus}`,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: "Failed to update order status",
-      });
-    }
-  };
+    res.status(500).json({
+      success: false,
+      message: "Failed to update order status",
+    });
+  }
+};
 module.exports = {
   createOrder,
-    getOrders,
-    getOrderById,
-    updateOrderStatus,
-    getAllOrders,
+  getOrders,
+  getOrderById,
+  updateOrderStatus,
+  getAllOrders,
 };

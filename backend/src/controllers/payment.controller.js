@@ -64,6 +64,13 @@ const confirmPayment = async (req, res) => {
   try {
     const userId = req.user.userId;
     const paymentId = Number(req.params.id);
+
+    if (!Number.isInteger(paymentId) || paymentId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment ID",
+      });
+    }
     const { transactionId } = req.body;
 
     const payment = await prisma.payment.findFirst({
@@ -106,13 +113,24 @@ const confirmPayment = async (req, res) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const updatedPayment = await tx.payment.update({
+      const updatedPayment = await tx.payment.updateMany({
         where: {
           id: paymentId,
+          status: "PENDING",
         },
         data: {
           status: "SUCCESS",
           transactionId,
+        },
+      });
+      
+      if (updatedPayment.count !== 1) {
+        throw new Error("PAYMENT_ALREADY_PROCESSED");
+      }
+      
+      const paymentRecord = await tx.payment.findUnique({
+        where: {
+          id: paymentId,
         },
       });
 
@@ -126,7 +144,7 @@ const confirmPayment = async (req, res) => {
       });
 
       return {
-        updatedPayment,
+        updatedPayment: paymentRecord,
         updatedOrder,
       };
     });
@@ -139,6 +157,12 @@ const confirmPayment = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    if (error.message === "PAYMENT_ALREADY_PROCESSED") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment has already been processed",
+      });
+    }
 
     res.status(500).json({
       success: false,
@@ -147,95 +171,102 @@ const confirmPayment = async (req, res) => {
   }
 };
 const getMyPayments = async (req, res) => {
-    try {
-      const userId = req.user.userId;
-  
-      const payments = await prisma.payment.findMany({
-        where: {
-          order: {
-            userId,
+  try {
+    const userId = req.user.userId;
+
+    const payments = await prisma.payment.findMany({
+      where: {
+        order: {
+          userId,
+        },
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            totalAmount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
           },
         },
-        include: {
-          order: {
-            select: {
-              id: true,
-              totalAmount: true,
-              status: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-  
-      res.status(200).json({
-        success: true,
-        count: payments.length,
-        payments,
-      });
-    } catch (error) {
-      console.error(error);
-  
-      res.status(500).json({
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      count: payments.length,
+      payments,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch payments",
+    });
+  }
+};
+
+const getPaymentById = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const paymentId = Number(req.params.id);
+
+    if (!Number.isInteger(paymentId) || paymentId <= 0) {
+      return res.status(400).json({
         success: false,
-        message: "Failed to fetch payments",
+        message: "Invalid payment ID",
       });
     }
-  };
-  
-  const getPaymentById = async (req, res) => {
-    try {
-      const userId = req.user.userId;
-      const paymentId = Number(req.params.id);
-  
-      const payment = await prisma.payment.findFirst({
-        where: {
-          id: paymentId,
-          order: {
-            userId,
-          },
+
+    const payment = await prisma.payment.findFirst({
+      where: {
+        id: paymentId,
+        order: {
+          userId,
         },
-        include: {
-          order: {
-            include: {
-              items: {
-                include: {
-                  product: true,
-                },
+      },
+      include: {
+        order: {
+          include: {
+            items: {
+              include: {
+                product: true,
               },
             },
           },
         },
-      });
-  
-      if (!payment) {
-        return res.status(404).json({
-          success: false,
-          message: "Payment not found",
-        });
-      }
-  
-      res.status(200).json({
-        success: true,
-        payment,
-      });
-    } catch (error) {
-      console.error(error);
-  
-      res.status(500).json({
+      },
+    });
+
+    if (!payment) {
+      return res.status(404).json({
         success: false,
-        message: "Failed to fetch payment",
+        message: "Payment not found",
       });
     }
-  };
-  
-  module.exports = {
-    createPayment,
-    confirmPayment,
-    getMyPayments,
-    getPaymentById,
-  };
+
+    res.status(200).json({
+      success: true,
+      payment,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch payment",
+    });
+  }
+};
+
+module.exports = {
+  createPayment,
+  confirmPayment,
+  getMyPayments,
+  getPaymentById,
+};

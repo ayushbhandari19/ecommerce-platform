@@ -1,5 +1,6 @@
 const express = require("express");
 const validate = require("../middleware/validate");
+const { idParamSchema } = require("../validators/common.validator");
 const {
   createCategorySchema,
   updateCategorySchema,
@@ -25,6 +26,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("ADMIN"),
+  validate(idParamSchema, "params"),
   validate(updateCategorySchema),
   updateCategory
 );
@@ -33,6 +35,7 @@ router.delete(
   "/:id",
   authenticate,
   authorize("ADMIN"),
+  validate(idParamSchema, "params"),
   deleteCategory
 );
 router.get("/", getCategories);

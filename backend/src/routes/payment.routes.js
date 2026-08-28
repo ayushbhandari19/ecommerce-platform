@@ -2,7 +2,7 @@ const express = require("express");
 
 const authenticate = require("../middleware/auth");
 const validate = require("../middleware/validate");
-
+const { idParamSchema } = require("../validators/common.validator");
 const {
   createPaymentSchema,
   confirmPaymentSchema,
@@ -27,10 +27,15 @@ router.post(
 
 router.get("/", getMyPayments);
 
-router.get("/:id", getPaymentById);
+router.get(
+  "/:id",
+  validate(idParamSchema, "params"),
+  getPaymentById
+);
 
 router.post(
   "/:id/confirm",
+  validate(idParamSchema, "params"),
   validate(confirmPaymentSchema),
   confirmPayment
 );

@@ -2,7 +2,10 @@ const express = require("express");
 
 const authenticate = require("../middleware/auth");
 const validate = require("../middleware/validate");
-
+const {
+  idParamSchema,
+  productIdParamSchema,
+} = require("../validators/common.validator");
 const {
   createReviewSchema,
   updateReviewSchema,
@@ -20,6 +23,7 @@ const router = express.Router();
 // Public
 router.get(
   "/products/:productId/reviews",
+  validate(productIdParamSchema, "params"),
   getProductReviews
 );
 
@@ -27,6 +31,7 @@ router.get(
 router.post(
   "/products/:productId/reviews",
   authenticate,
+  validate(productIdParamSchema, "params"),
   validate(createReviewSchema),
   createReview
 );
@@ -35,12 +40,14 @@ router.post(
 router.put(
   "/reviews/:id",
   authenticate,
+  validate(idParamSchema, "params"),
   validate(updateReviewSchema),
   updateReview
 );
 router.delete(
-    "/reviews/:id",
-    authenticate,
-    deleteReview
-  );
+  "/reviews/:id",
+  authenticate,
+  validate(idParamSchema, "params"),
+  deleteReview
+);
 module.exports = router;

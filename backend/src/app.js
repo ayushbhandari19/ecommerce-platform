@@ -13,16 +13,7 @@ const app = express();
 
 const wishlistRoutes = require("./routes/wishlist.routes");
 app.use(helmet());
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: "Too many requests, please try again later",
-  },
-});
+const { apiLimiter } = require("./middleware/rateLimiter");
 
 app.use("/api", apiLimiter);
 

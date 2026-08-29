@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../lib/prisma");
+const { Prisma } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
 
 const register = async (req, res) => {
@@ -41,6 +42,16 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: "A user with this email already exists",
+      });
+    }
 
     res.status(500).json({
       success: false,

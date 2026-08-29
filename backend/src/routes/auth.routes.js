@@ -5,7 +5,6 @@ const { registerSchema, loginSchema } = require("../validators/auth.validator");
 const { register, login } = require("../controllers/auth.controller");
 const router = express.Router();
 const authenticate = require("../middleware/auth");
-const authorize = require("../middleware/authorize");
 router.post("/register", validate(registerSchema), register);
 router.post(
   "/login",

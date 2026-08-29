@@ -1,6 +1,6 @@
 const prisma = require("../lib/prisma");
 
-const getWishlist = async (req, res) => {
+const getWishlist = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -26,16 +26,11 @@ const getWishlist = async (req, res) => {
       wishlist,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch wishlist",
-    });
+    next(error);
   }
 };
 
-const addToWishlist = async (req, res) => {
+const addToWishlist = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const productId = Number(req.params.productId);
@@ -96,16 +91,11 @@ const addToWishlist = async (req, res) => {
       wishlistItem,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to add product to wishlist",
-    });
+    next(error);
   }
 };
 
-const removeFromWishlist = async (req, res) => {
+const removeFromWishlist = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const productId = Number(req.params.productId);
@@ -144,12 +134,7 @@ const removeFromWishlist = async (req, res) => {
       message: "Product removed from wishlist",
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to remove product from wishlist",
-    });
+    next(error);
   }
 };
 

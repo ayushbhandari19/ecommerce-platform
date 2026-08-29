@@ -40,7 +40,7 @@ const getOrCreateCart = async (userId) => {
   return cart;
 };
 
-const getCart = async (req, res) => {
+const getCart = async (req, res, next) => {
   try {
     const cart = await getOrCreateCart(req.user.userId);
 
@@ -49,16 +49,11 @@ const getCart = async (req, res) => {
       cart,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch cart",
-    });
+    next(error);
   }
 };
 
-const addToCart = async (req, res) => {
+const addToCart = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { productId, quantity } = req.body;
@@ -145,16 +140,11 @@ const addToCart = async (req, res) => {
       cart: updatedCart,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to add product to cart",
-    });
+    next(error);
   }
 };
 
-const updateCartItem = async (req, res) => {
+const updateCartItem = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { itemId } = req.params;
@@ -214,16 +204,11 @@ const updateCartItem = async (req, res) => {
       cart: updatedCart,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to update cart item",
-    });
+    next(error);
   }
 };
 
-const removeFromCart = async (req, res) => {
+const removeFromCart = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { itemId } = req.params;
@@ -269,16 +254,11 @@ const removeFromCart = async (req, res) => {
       cart: updatedCart,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to remove product from cart",
-    });
+    next(error);
   }
 };
 
-const clearCart = async (req, res) => {
+const clearCart = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -306,12 +286,7 @@ const clearCart = async (req, res) => {
       message: "Cart cleared successfully",
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to clear cart",
-    });
+    next(error);
   }
 };
 

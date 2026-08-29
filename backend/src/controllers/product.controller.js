@@ -1,6 +1,6 @@
 const prisma = require("../lib/prisma");
-
-const createProduct = async (req, res) => {
+const AppError = require("../utils/AppError");
+const createProduct = async (req, res, next) => {
   try {
     const {
       name,
@@ -29,30 +29,21 @@ const createProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error(error);
-
     if (error.code === "P2002") {
-      return res.status(409).json({
-        success: false,
-        message: "A product with this slug already exists",
-      });
+      return next(
+        new AppError("A product with this slug already exists", 409)
+      );
     }
 
     if (error.code === "P2003") {
-      return res.status(400).json({
-        success: false,
-        message: "The specified category does not exist",
-      });
+      return next(
+        new AppError("The specified category does not exist", 400)
+      );
     }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create product",
-
-    });
+    next(error);
   }
 };
-const getProducts = async (req, res) => {
+const getProducts = async (req, res, next) => {
   try {
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.min(
@@ -155,15 +146,10 @@ const getProducts = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch products",
-    });
+    next(error);
   }
 };
-const getProductById = async (req, res) => {
+const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -188,15 +174,10 @@ const getProductById = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch product",
-    });
+    next(error);
   }
 };
-const updateProduct = async (req, res) => {
+const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -233,36 +214,21 @@ const updateProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error(error);
-
     if (error.code === "P2002") {
-      return res.status(409).json({
-        success: false,
-        message: "A product with this slug already exists",
-      });
+      return next(
+        new AppError("A product with this slug already exists", 409)
+      );
     }
 
     if (error.code === "P2003") {
-      return res.status(400).json({
-        success: false,
-        message: "The specified category does not exist",
-      });
+      return next(
+        new AppError("The specified category does not exist", 400)
+      );
     }
-
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to update product",
-    });
+    next(error);
   }
 };
-const deleteProduct = async (req, res) => {
+const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -277,19 +243,7 @@ const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
-    console.error(error);
-
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete product",
-    });
+    next(error);
   }
 };
 module.exports = {

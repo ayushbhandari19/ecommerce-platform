@@ -1,6 +1,6 @@
 const prisma = require("../lib/prisma");
 
-const createReview = async (req, res) => {
+const createReview = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const productId = Number(req.params.productId);
@@ -82,15 +82,10 @@ const createReview = async (req, res) => {
       review,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create review",
-    });
+    next(error);
   }
 };
-const getProductReviews = async (req, res) => {
+const getProductReviews = async (req, res, next) => {
     try {
       const productId = Number(req.params.productId);
   
@@ -142,15 +137,10 @@ const getProductReviews = async (req, res) => {
         reviews,
       });
     } catch (error) {
-      console.error(error);
-  
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch product reviews",
-      });
+      next(error);
     }
   };
-  const updateReview = async (req, res) => {
+  const updateReview = async (req, res, next) => {
     try {
       const userId = req.user.userId;
       const reviewId = Number(req.params.id);
@@ -196,15 +186,10 @@ const getProductReviews = async (req, res) => {
         review: updatedReview,
       });
     } catch (error) {
-      console.error(error);
-  
-      res.status(500).json({
-        success: false,
-        message: "Failed to update review",
-      });
+      next(error);
     }
   };
-  const deleteReview = async (req, res) => {
+  const deleteReview = async (req, res, next) => {
     try {
       const userId = req.user.userId;
       const reviewId = Number(req.params.id);
@@ -234,12 +219,7 @@ const getProductReviews = async (req, res) => {
         message: "Review deleted successfully",
       });
     } catch (error) {
-      console.error(error);
-  
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete review",
-      });
+      next(error);
     }
   };
 module.exports = {

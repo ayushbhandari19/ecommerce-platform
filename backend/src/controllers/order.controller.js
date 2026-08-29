@@ -6,8 +6,9 @@ const allowedTransitions = {
   DELIVERED: [],
   CANCELLED: [],
 };
+const AppError = require("../utils/AppError");
 const { Prisma } = require("@prisma/client");
-const createOrder = async (req, res) => {
+const createOrder = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -27,7 +28,7 @@ const createOrder = async (req, res) => {
       });
 
       if (!cart || cart.items.length === 0) {
-        throw new Error("CART_EMPTY");
+        throw new AppError("Your cart is empty", 400);
       }
 
       // 2. Validate stock and calculate total
@@ -36,8 +37,12 @@ const createOrder = async (req, res) => {
 
       for (const item of cart.items) {
         if (item.quantity > item.product.stock) {
-          throw new Error(
-            `INSUFFICIENT_STOCK:${item.product.id}:${item.product.stock}`
+          throw new AppError(
+            `Insufficient stock for product ${item.productId}`,
+            400,
+            {
+              availableStock: item.product.stock,
+            }
           );
         }
 
@@ -124,32 +129,10 @@ const createOrder = async (req, res) => {
       order: result,
     });
   } catch (error) {
-    console.error(error);
-
-    if (error.message === "CART_EMPTY") {
-      return res.status(400).json({
-        success: false,
-        message: "Your cart is empty",
-      });
-    }
-
-    if (error.message.startsWith("INSUFFICIENT_STOCK:")) {
-      const [, productId, availableStock] = error.message.split(":");
-
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient stock for product ${productId}`,
-        availableStock: Number(availableStock),
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create order",
-    });
+    next(error);
   }
 };
-const getOrders = async (req, res) => {
+const getOrders = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -175,15 +158,10 @@ const getOrders = async (req, res) => {
       orders,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch orders",
-    });
+    next(error);
   }
 };
-const getOrderById = async (req, res) => {
+const getOrderById = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const orderId = Number(req.params.id);
@@ -221,15 +199,10 @@ const getOrderById = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch order",
-    });
+    next(error);
   }
 };
-const getAllOrders = async (req, res) => {
+const getAllOrders = async (req, res, next) => {
   try {
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.min(
@@ -317,15 +290,10 @@ const getAllOrders = async (req, res) => {
       orders,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch all orders",
-    });
+    next(error);
   }
 };
-const updateOrderStatus = async (req, res) => {
+const updateOrderStatus = async (req, res, next) => {
   try {
     const orderId = Number(req.params.id);
     const { status } = req.body;
@@ -354,8 +322,9 @@ const updateOrderStatus = async (req, res) => {
       const allowedStatuses = allowedTransitions[order.status];
 
       if (!allowedStatuses.includes(status)) {
-        throw new Error(
-          `INVALID_TRANSITION:${order.status}:${status}`
+        throw new AppError(
+          `Cannot change order status from ${order.status} to ${status}`,
+          400
         );
       }
 
@@ -398,29 +367,7 @@ const updateOrderStatus = async (req, res) => {
       order: result,
     });
   } catch (error) {
-    console.error(error);
-
-    if (error.message === "ORDER_NOT_FOUND") {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    if (error.message.startsWith("INVALID_TRANSITION:")) {
-      const [, currentStatus, newStatus] =
-        error.message.split(":");
-
-      return res.status(400).json({
-        success: false,
-        message: `Cannot change order status from ${currentStatus} to ${newStatus}`,
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to update order status",
-    });
+    next(error);
   }
 };
 module.exports = {

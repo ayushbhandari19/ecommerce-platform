@@ -1,9 +1,8 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../lib/prisma");
-const { Prisma } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
@@ -40,26 +39,11 @@ const register = async (req, res) => {
         role: user.role,
       },
     });
-  } catch (error) {
-    console.error(error);
-
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return res.status(409).json({
-        success: false,
-        message: "A user with this email already exists",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to register user",
-    });
+  }  catch (error) {
+    next(error);
   }
 };
-const login = async (req, res) => {
+const login = async (req, res, next) => {
     try {
       const { email, password } = req.body;
   
@@ -108,12 +92,7 @@ const login = async (req, res) => {
         },
       });
     } catch (error) {
-      console.error(error);
-  
-      res.status(500).json({
-        success: false,
-        message: "Failed to login",
-      });
+      next(error);
     }
   };
 

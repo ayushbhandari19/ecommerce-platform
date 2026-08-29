@@ -1,6 +1,6 @@
 const prisma = require("../lib/prisma");
 
-const createPayment = async (req, res) => {
+const createPayment = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { orderId, paymentMethod } = req.body;
@@ -51,16 +51,11 @@ const createPayment = async (req, res) => {
       payment,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create payment",
-    });
+    next(error);
   }
 };
 
-const confirmPayment = async (req, res) => {
+const confirmPayment = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const paymentId = Number(req.params.id);
@@ -156,21 +151,10 @@ const confirmPayment = async (req, res) => {
       order: result.updatedOrder,
     });
   } catch (error) {
-    console.error(error);
-    if (error.message === "PAYMENT_ALREADY_PROCESSED") {
-      return res.status(400).json({
-        success: false,
-        message: "Payment has already been processed",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to confirm payment",
-    });
+    next(error);
   }
 };
-const getMyPayments = async (req, res) => {
+const getMyPayments = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -202,16 +186,11 @@ const getMyPayments = async (req, res) => {
       payments,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch payments",
-    });
+    next(error);
   }
 };
 
-const getPaymentById = async (req, res) => {
+const getPaymentById = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const paymentId = Number(req.params.id);
@@ -255,12 +234,7 @@ const getPaymentById = async (req, res) => {
       payment,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch payment",
-    });
+    next(error);
   }
 };
 

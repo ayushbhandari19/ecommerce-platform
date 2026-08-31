@@ -32,7 +32,6 @@ const createOrder = async (req, res, next) => {
       }
 
       // 2. Validate stock and calculate total
-      // 2. Validate stock and calculate total
       let totalAmount = new Prisma.Decimal(0);
 
       for (const item of cart.items) {
@@ -95,8 +94,12 @@ const createOrder = async (req, res, next) => {
             },
           });
         
-          throw new Error(
-            `INSUFFICIENT_STOCK:${item.productId}:${currentProduct?.stock ?? 0}`
+          throw new AppError(
+            `Insufficient stock for product ${item.productId}`,
+            400,
+            {
+              availableStock: currentProduct?.stock ?? 0,
+            }
           );
         }
       }
@@ -316,7 +319,7 @@ const updateOrderStatus = async (req, res, next) => {
       });
 
       if (!order) {
-        throw new Error("ORDER_NOT_FOUND");
+        throw new AppError("Order not found", 404);
       }
 
       const allowedStatuses = allowedTransitions[order.status];

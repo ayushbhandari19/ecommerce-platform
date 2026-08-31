@@ -1,7 +1,11 @@
 const { Prisma } = require("@prisma/client");
 
 const errorHandler = (err, req, res, next) => {
-  console.error(err);
+  if (process.env.NODE_ENV !== "production") {
+    console.error(err);
+  } else {
+    console.error(err.name, err.message);
+  }
 
   // Prisma known database errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {

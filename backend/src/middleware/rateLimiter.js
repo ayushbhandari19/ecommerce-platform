@@ -1,8 +1,10 @@
 const rateLimit = require("express-rate-limit");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: isProduction ? 100 : 1000,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === "test",
@@ -14,7 +16,7 @@ const apiLimiter = rateLimit({
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: isProduction ? 10 : 100,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === "test",

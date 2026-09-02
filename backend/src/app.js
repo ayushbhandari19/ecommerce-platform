@@ -13,6 +13,15 @@ const errorHandler = require("./middleware/errorHandler");
 
 const wishlistRoutes = require("./routes/wishlist.routes");
 app.use(helmet());
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.FRONTEND_URL
+        : ["http://localhost:3000", "http://192.168.1.8:3000"],
+    credentials: true,
+  })
+);
 const { apiLimiter } = require("./middleware/rateLimiter");
 
 app.use("/api", apiLimiter);

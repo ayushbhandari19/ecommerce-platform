@@ -25,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               alt={product.name}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -34,31 +34,41 @@ export default function ProductCard({ product }: ProductCardProps) {
               </span>
             </div>
           )}
+
+          {product.stock === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <span className="rounded-full bg-white px-4 py-2 text-sm font-medium">
+                Out of stock
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 flex items-start justify-between gap-4">
-          <div>
-            {product.category && (
-              <p className="text-sm text-neutral-500">
-                {product.category.name}
-              </p>
-            )}
+        <div className="mt-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              {product.category && (
+                <p className="text-xs font-medium uppercase tracking-[0.15em] text-neutral-400">
+                  {product.category.name}
+                </p>
+              )}
 
-            <h3 className="mt-1 font-medium">{product.name}</h3>
+              <h3 className="mt-2 truncate font-medium transition-colors group-hover:text-neutral-600">
+                {product.name}
+              </h3>
+            </div>
+
+            <p className="shrink-0 font-medium">
+              ₹{Number(product.price).toLocaleString("en-IN")}
+            </p>
           </div>
 
-          <p className="font-medium">
-            ₹{Number(product.price).toLocaleString("en-IN")}
-          </p>
+          {product.stock > 0 && product.stock <= 5 && (
+            <p className="mt-2 text-sm text-amber-600">
+              Only {product.stock} left
+            </p>
+          )}
         </div>
-
-        <p
-          className={`mt-2 text-sm ${
-            product.stock > 0 ? "text-neutral-500" : "text-red-600"
-          }`}
-        >
-          {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
-        </p>
       </article>
     </Link>
   );

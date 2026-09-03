@@ -232,3 +232,139 @@ export async function register(
   
     return result.cart;
   }
+  export type OrderItem = {
+    id: number;
+    quantity: number;
+    price: string;
+    product: Product;
+  };
+  
+  export type Order = {
+    id: number;
+    userId: number;
+    totalAmount: string;
+    status: "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+    createdAt: string;
+    updatedAt: string;
+    items: OrderItem[];
+  };
+  
+  export async function createOrder(): Promise<Order> {
+    const response = await authFetch("/orders", {
+      method: "POST",
+    });
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      message: string;
+      order: Order;
+    };
+  
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to create order");
+    }
+  
+    return result.order;
+  }
+  export async function getOrder(id: string): Promise<Order> {
+    const response = await authFetch(`/orders/${id}`);
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      order: Order;
+      message?: string;
+    };
+  
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to fetch order");
+    }
+  
+    return result.order;
+  }
+  export async function getOrders(): Promise<Order[]> {
+    const response = await authFetch("/orders");
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      count: number;
+      orders: Order[];
+      message?: string;
+    };
+  
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to fetch orders");
+    }
+  
+    return result.orders;
+  }
+  export type Payment = {
+    id: number;
+    orderId: number;
+    amount: string;
+    paymentMethod: string;
+    status: "PENDING" | "SUCCESS" | "FAILED";
+    transactionId: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  
+  export async function createPayment(
+    orderId: number,
+    paymentMethod: string
+  ): Promise<Payment> {
+    const response = await authFetch("/payments", {
+      method: "POST",
+      body: JSON.stringify({
+        orderId,
+        paymentMethod,
+      }),
+    });
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      message: string;
+      payment: Payment;
+    };
+  
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to create payment");
+    }
+  
+    return result.payment;
+  }
+  
+  export async function confirmPayment(
+    paymentId: number,
+    transactionId: string
+  ): Promise<{
+    payment: Payment;
+    order: Order;
+  }> {
+    const response = await authFetch(
+      `/payments/${paymentId}/confirm`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          transactionId,
+        }),
+      }
+    );
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      message: string;
+      payment: Payment;
+      order: Order;
+    };
+  
+    if (!response.ok) {
+      throw new Error(
+        result.message || "Failed to confirm payment"
+      );
+    }
+  
+    return {
+      payment: result.payment,
+      order: result.order,
+    };
+  }

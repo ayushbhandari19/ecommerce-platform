@@ -235,7 +235,7 @@ function AdminOrdersContent() {
                                     </div>
 
                                     <Link
-                                        href={`/orders/${order.id}`}
+                                        href={`/admin/orders/${order.id}`}
                                         className="text-sm font-medium hover:underline"
                                     >
                                         View →

@@ -299,6 +299,54 @@ const getAllOrders = async (req, res, next) => {
     next(error);
   }
 };
+const getAdminOrderById = async (req, res, next) => {
+  try {
+    const orderId = Number(req.params.id);
+
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID",
+      });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        payment: true,
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateOrderStatus = async (req, res, next) => {
   try {
     const orderId = Number(req.params.id);
@@ -380,6 +428,7 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderById,
+  getAdminOrderById,
   updateOrderStatus,
   getAllOrders,
 };

@@ -302,6 +302,23 @@ export type Order = {
   
     return result.order;
   }
+  export async function getAdminOrder(id: string): Promise<Order> {
+    const response = await authFetch(`/orders/admin/${id}`);
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      order: Order;
+      message?: string;
+    };
+  
+    if (!response.ok) {
+      throw new Error(
+        result.message || "Failed to fetch admin order"
+      );
+    }
+  
+    return result.order;
+  }
   export async function getOrders(): Promise<Order[]> {
     const response = await authFetch("/orders");
   

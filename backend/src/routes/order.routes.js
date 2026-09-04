@@ -14,6 +14,7 @@ const {
   createOrder,
   getOrders,
   getOrderById,
+  getAdminOrderById,
   updateOrderStatus,
   getAllOrders,
 } = require("../controllers/order.controller");
@@ -29,6 +30,12 @@ router.get(
   authorize("ADMIN"),
   validate(orderQuerySchema, "query"),
   getAllOrders
+);
+router.get(
+  "/admin/:id",
+  authorize("ADMIN"),
+  validate(idParamSchema, "params"),
+  getAdminOrderById
 );
 router.get(
     "/:id",

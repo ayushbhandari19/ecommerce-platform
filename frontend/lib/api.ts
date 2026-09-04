@@ -1,5 +1,4 @@
-import type { Product } from "@/types/product";
-
+import type { Category, Product } from "@/types/product";
 const API_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
 
@@ -27,6 +26,21 @@ export async function getProducts(): Promise<Product[]> {
     }
 
     return result.products;
+}
+export async function getCategories(): Promise<Category[]> {
+  const response = await fetch(`${API_URL}/categories`);
+
+  const result = (await response.json()) as {
+    success: boolean;
+    categories: Category[];
+    message?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(result.message || "Failed to fetch categories");
+  }
+
+  return result.categories;
 }
 export async function getProduct(id: string): Promise<Product> {
     const response = await fetch(`${API_URL}/products/${id}`);
@@ -297,6 +311,24 @@ export async function register(
   
     return result.orders;
   }
+  export async function getAdminOrders(): Promise<Order[]> {
+    const response = await authFetch("/orders/admin/all");
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      count: number;
+      orders: Order[];
+      message?: string;
+    };
+  
+    if (!response.ok) {
+      throw new Error(
+        result.message || "Failed to fetch admin orders"
+      );
+    }
+  
+    return result.orders;
+  }
   export type Payment = {
     id: number;
     orderId: number;
@@ -367,4 +399,27 @@ export async function register(
       payment: result.payment,
       order: result.order,
     };
+  }
+  export async function updateOrderStatus(
+    orderId: number,
+    status: Order["status"]
+  ): Promise<Order> {
+    const response = await authFetch(`/orders/${orderId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+  
+    const result = (await response.json()) as {
+      success: boolean;
+      message: string;
+      order: Order;
+    };
+  
+    if (!response.ok) {
+      throw new Error(
+        result.message || "Failed to update order status"
+      );
+    }
+  
+    return result.order;
   }

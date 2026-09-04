@@ -59,20 +59,42 @@ function OrdersContent() {
         <>
             <Navbar />
 
-            <main className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-                <h1 className="text-3xl font-semibold tracking-tight">
-                    Your Orders
-                </h1>
+            <main className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-20">
+                <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-neutral-500">
+                        Account
+                    </p>
+
+                    <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
+                        Your orders
+                    </h1>
+
+                    <p className="mt-4 text-neutral-500">
+                        View your recent purchases and order details.
+                    </p>
+                </div>
 
                 {orders.length === 0 ? (
-                    <div className="mt-12">
-                        <p className="text-neutral-500">
-                            You haven't placed any orders yet.
+                    <div className="mt-16 py-16 text-center">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                            <span className="text-2xl">📦</span>
+                        </div>
+
+                        <p className="mt-8 text-sm font-medium uppercase tracking-[0.2em] text-neutral-400">
+                            No orders yet
+                        </p>
+
+                        <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+                            Your order history is empty
+                        </h2>
+
+                        <p className="mx-auto mt-3 max-w-md text-neutral-600">
+                            Once you place an order, you'll find all your purchases here.
                         </p>
 
                         <Link
                             href="/products"
-                            className="mt-6 inline-block rounded-full bg-black px-6 py-3 text-sm font-medium text-white"
+                            className="mt-8 inline-block rounded-full bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
                         >
                             Start shopping
                         </Link>
@@ -83,32 +105,52 @@ function OrdersContent() {
                             <Link
                                 key={order.id}
                                 href={`/orders/${order.id}`}
-                                className="block rounded-2xl border border-neutral-200 p-6 transition hover:border-neutral-400"
+                                className="group block rounded-2xl border border-neutral-200 p-6 transition hover:border-neutral-400 hover:shadow-sm"
                             >
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                        <p className="font-medium">
-                                            Order #{order.id}
+                                        <div className="flex items-center gap-3">
+                                            <p className="font-medium">
+                                                Order #{order.id}
+                                            </p>
+
+                                            <span
+                                                className={`rounded-full px-3 py-1 text-xs font-medium ${order.status === "CONFIRMED"
+                                                        ? "bg-green-100 text-green-700"
+                                                        : order.status === "SHIPPED"
+                                                            ? "bg-blue-100 text-blue-700"
+                                                            : order.status === "DELIVERED"
+                                                                ? "bg-emerald-100 text-emerald-700"
+                                                                : order.status === "CANCELLED"
+                                                                    ? "bg-red-100 text-red-700"
+                                                                    : "bg-amber-100 text-amber-700"
+                                                    }`}
+                                            >
+                                                {order.status}
+                                            </span>
+                                        </div>
+
+                                        <p className="mt-2 text-sm text-neutral-500">
+                                            {order.items.length}{" "}
+                                            {order.items.length === 1 ? "item" : "items"}
                                         </p>
 
-                                        <p className="mt-1 text-sm text-neutral-500">
-                                            {order.items.length}{" "}
-                                            {order.items.length === 1
-                                                ? "item"
-                                                : "items"}
+                                        <p className="mt-1 text-sm text-neutral-400">
+                                            {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                                                day: "numeric",
+                                                month: "short",
+                                                year: "numeric",
+                                            })}
                                         </p>
                                     </div>
 
-                                    <div className="text-right">
+                                    <div className="flex items-center justify-between gap-6 sm:flex-col sm:items-end">
                                         <p className="font-medium">
-                                            ₹
-                                            {Number(
-                                                order.totalAmount
-                                            ).toFixed(2)}
+                                            ₹{Number(order.totalAmount).toLocaleString("en-IN")}
                                         </p>
 
-                                        <span className="mt-1 inline-block rounded-full bg-neutral-100 px-3 py-1 text-xs">
-                                            {order.status}
+                                        <span className="text-sm text-neutral-500 transition group-hover:text-black">
+                                            View order →
                                         </span>
                                     </div>
                                 </div>

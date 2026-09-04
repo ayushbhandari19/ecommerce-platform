@@ -1,7 +1,7 @@
 
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/api";
@@ -15,6 +15,11 @@ export default function RegisterPage() {
 
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    useEffect(() => {
+        if (localStorage.getItem("token")) {
+            router.replace("/products");
+        }
+    }, [router]);
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();

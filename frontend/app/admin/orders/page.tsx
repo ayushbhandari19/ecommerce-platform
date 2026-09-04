@@ -155,10 +155,14 @@ function AdminOrdersContent() {
 
                                     <div>
                                         <p className="text-sm font-medium">
-                                            Customer #{order.userId}
+                                            {order.user?.name || `Customer #${order.userId}`}
                                         </p>
 
                                         <p className="mt-1 text-sm text-neutral-500">
+                                            {order.user?.email || "Email unavailable"}
+                                        </p>
+
+                                        <p className="mt-1 text-xs text-neutral-400">
                                             {order.items.length}{" "}
                                             {order.items.length === 1
                                                 ? "item"
@@ -176,14 +180,14 @@ function AdminOrdersContent() {
                                     <div>
                                         <span
                                             className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${order.status === "CONFIRMED"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : order.status === "SHIPPED"
-                                                        ? "bg-blue-100 text-blue-700"
-                                                        : order.status === "DELIVERED"
-                                                            ? "bg-emerald-100 text-emerald-700"
-                                                            : order.status === "CANCELLED"
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-amber-100 text-amber-700"
+                                                ? "bg-green-100 text-green-700"
+                                                : order.status === "SHIPPED"
+                                                    ? "bg-blue-100 text-blue-700"
+                                                    : order.status === "DELIVERED"
+                                                        ? "bg-emerald-100 text-emerald-700"
+                                                        : order.status === "CANCELLED"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : "bg-amber-100 text-amber-700"
                                                 }`}
                                         >
                                             {order.status}
@@ -214,6 +218,19 @@ function AdminOrdersContent() {
                                                     </option>
                                                 ))}
                                             </select>
+
+                                        )}
+                                        {order.payment && (
+                                            <p
+                                                className={`mt-2 text-xs font-medium ${order.payment.status === "SUCCESS"
+                                                        ? "text-green-600"
+                                                        : order.payment.status === "FAILED"
+                                                            ? "text-red-600"
+                                                            : "text-amber-600"
+                                                    }`}
+                                            >
+                                                Payment: {order.payment.status}
+                                            </p>
                                         )}
                                     </div>
 

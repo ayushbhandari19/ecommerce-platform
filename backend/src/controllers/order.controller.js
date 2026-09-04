@@ -83,7 +83,7 @@ const createOrder = async (req, res, next) => {
             },
           },
         });
-        
+
         if (stockUpdate.count !== 1) {
           const currentProduct = await tx.product.findUnique({
             where: {
@@ -93,7 +93,7 @@ const createOrder = async (req, res, next) => {
               stock: true,
             },
           });
-        
+
           throw new AppError(
             `Insufficient stock for product ${item.productId}`,
             400,
@@ -259,11 +259,14 @@ const getAllOrders = async (req, res, next) => {
               email: true,
             },
           },
+
           items: {
             include: {
               product: true,
             },
           },
+
+          payment: true,
         },
         orderBy: {
           createdAt: "desc",

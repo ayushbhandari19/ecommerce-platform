@@ -252,8 +252,9 @@ export async function register(
     price: string;
     product: Product;
   };
-  
-  export type Order = {
+
+
+export type Order = {
     id: number;
     userId: number;
     totalAmount: string;
@@ -261,7 +262,13 @@ export async function register(
     createdAt: string;
     updatedAt: string;
     items: OrderItem[];
-  };
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+    payment?: Payment | null;
+};
   
   export async function createOrder(): Promise<Order> {
     const response = await authFetch("/orders", {

@@ -26,9 +26,7 @@ const { apiLimiter } = require("./middleware/rateLimiter");
 
 app.use("/api", apiLimiter);
 
-if (process.env.NODE_ENV === "production") {
-  requiredEnv.push("FRONTEND_URL");
-}
+
 app.use(express.json({ limit: "100kb" }));
 
 app.use("/api/categories", categoryRoutes);
